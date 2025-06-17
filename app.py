@@ -27,10 +27,13 @@ app = FastAPI()
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://loanapprovalfrontend.netlify.app/"],  # Update to ["https://<your-netlify-app>.netlify.app"] after deployment
+    allow_origins=[
+        "https://loanapprovalfrontend.netlify.app",
+        "http://localhost:3000"  # For local testing, if needed
+    ],
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["*"],  # Allow all methods (GET, POST, OPTIONS, etc.)
+    allow_headers=["*"],  # Allow all headers
 )
 
 @app.get("/")
