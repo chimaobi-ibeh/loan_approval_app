@@ -28,8 +28,8 @@ app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "https://loanapprovalfrontend.netlify.app",
-        "http://localhost:3000"  # For local testing, if needed
+        "https://beamxsolutions.netlify.app",
+        "http://localhost:3000"  # For local testing
     ],
     allow_credentials=True,
     allow_methods=["*"],  # Allow all methods (GET, POST, OPTIONS, etc.)
