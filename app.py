@@ -1,26 +1,9 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 import joblib
 import pandas as pd
-
-# Load artifacts
-model = joblib.load('loan_approval_rf.pkl')
-columns = joblib.load('feature_columns.pkl')
-
-# Define request schema with validation
-class Applicant(BaseModel):
-    Gender_Male: int = Field(ge=0, le=1)
-    Married_Yes: int = Field(ge=0, le=1)
-    Education_NotGraduate: int = Field(ge=0, le=1)
-    Self_Employed_Yes: int = Field(ge=0, le=1)
-    ApplicantIncome: float = Field(ge=0)
-    CoapplicantIncome: float = Field(ge=0)
-    LoanAmount: float = Field(ge=0)
-    Loan_Amount_Term: float = Field(ge=0)
-    Credit_History: int = Field(ge=0, le=1)
-    Property_Area_Semiurban: int = Field(ge=0, le=1)
-    Property_Area_Urban: int = Field(ge=0, le=1)
+import numpy as np
 
 app = FastAPI()
 
@@ -36,13 +19,42 @@ app.add_middleware(
     allow_headers=["*"],  # Allow all headers
 )
 
-@app.get("/")
-async def root():
-    return {"message": "Loan Approval API. Use /predict for predictions. Docs at /docs."}
+# Load the model and feature columns
+model = joblib.load("loan_approval_simple_rf.pkl")
+feature_columns = joblib.load("simple_feature_columns.pkl")
 
-@app.post('/predict')
-async def predict(applicant: Applicant):
-    data = pd.DataFrame([applicant.dict()], columns=columns)
-    prob = model.predict_proba(data)[0,1]
-    approved = int(prob >= 0.5)
-    return {'approval_probability': prob, 'approved': approved}
+# Define input data model using Pydantic
+class LoanApplication(BaseModel):
+    Dependents: int
+    ApplicantIncome: float
+    CoapplicantIncome: float
+    LoanAmount: float
+    Loan_Amount_Term: float
+    Credit_History: float
+    Gender_Male: int
+    Married_Yes: int
+    Education_Not_Graduate: int
+    Self_Employed_Yes: int
+    Property_Area_Semiurban: int
+    Property_Area_Urban: int
+
+@app.get("/")
+def read_root():
+    return {"message": "Loan Approval API"}
+
+@app.post("/predict")
+async def predict_loan_approval(application: LoanApplication):
+    try:
+        # Convert input to DataFrame
+        input_data = pd.DataFrame([application.dict()], columns=feature_columns)
+        
+        # Make prediction
+        prob = model.predict_proba(input_data)[0, 1]
+        prediction = model.predict(input_data)[0]
+        
+        return {
+            "approval_probability": float(prob),
+            "prediction": "APPROVED" if prediction else "REJECTED"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
